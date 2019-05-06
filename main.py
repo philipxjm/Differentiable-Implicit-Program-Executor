@@ -13,19 +13,20 @@ def train(model, dataset, epochs, save_name):
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver()
+
     pbar = tqdm(range(0, epochs))
-    programs = dataset["programs"]
-    positions = dataset["positions"]
-    labels = dataset["labels"]
-    print(len(programs))
-    # for i in pbar:
-    #     l, _ = sess.run([model.loss, model.optimize],
-    #                     feed_dict={model.inputs: x,
-    #                                model.labels: y,
-    #                                model.dropout: hp.KEEP_PROB})
+    iteration = 0
+    for i in dataset:
+        prg, pst, lbl = i
+        l, _ = sess.run([model.loss, model.optimize],
+                        feed_dict={model.programs: prg,
+                                   model.positions: pst,
+                                   model.labels: lbl,
+                                   model.dropout: hp.KEEP_PROB})
     #     pbar.set_description("epoch {}, loss={}".format(i, l))
-    #     if i % 100 == 0:
-    #         print("epoch {}, loss={}".format(i, l))
+        # if iteration % 100 == 0:
+        print("epoch {}, loss={}".format(iteration, l))
+        iteration += 1
     #     if i % 500 == 0:
     #         print("Saving at epoch {}, loss={}".format(i, l))
     #         saver.save(sess,
@@ -55,18 +56,14 @@ def train(model, dataset, epochs, save_name):
 if __name__ == '__main__':
     programs = tf.placeholder(tf.int32, shape=[None, None])
     positions = tf.placeholder(tf.float32, shape=[None, 3])
-    labels = tf.placeholder(tf.int32, shape=[None, 1])
+    labels = tf.placeholder(tf.float32, shape=[None, 1])
     dropout = tf.placeholder(tf.float32, shape=())
 
-    padded_sign_matrices = read_sdf_dir("data/sdf_small/")
-    programs = read_program_dir("data/programs/")
-    data_iter = generate_data(padded_sign_matrices, programs)
-    for i in data_iter:
-        print(i[0])
+    data_iter = generate_data("data/sdf_small/", "data/programs/")
     m = model.Model(programs=programs,
                     positions=positions,
                     labels=labels,
                     dropout=dropout)
-    # train(m, training_set, 10, "model/jsb8/model_")
+    train(m, data_iter, 10, "model/jsb8/model_")
     # test(m, pieces, "model/jsb8/model")
     # generate(m, pieces, "model/jsb8/model", token2idx, idx2token)

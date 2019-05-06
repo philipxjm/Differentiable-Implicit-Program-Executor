@@ -10,7 +10,7 @@ class Model:
         self.labels = labels
         self.dropout = dropout
 
-        self.encoding = self.encoder(programs)[0]
+        self.encoding = self.encoder(programs)[0][:, -1, :]
         self.logits = self.decoder(self.encoding, self.positions)
         self.optimize, self.loss = self.train(self.logits, self.labels)
 
@@ -18,13 +18,16 @@ class Model:
                 programs,
                 rnn_size=hp.RNN_SIZE,
                 num_layers=hp.RNN_LAYER_COUNT):
+        embed = tf.contrib.layers.embed_sequence(programs,
+                                                 vocab_size=hp.VOCAB_SIZE,
+                                                 embed_dim=hp.EMBEDDING_SIZE)
         stacked_cells = tf.contrib.rnn.MultiRNNCell(
             [tf.contrib.rnn.DropoutWrapper(tf.contrib.rnn.LSTMCell(rnn_size),
                                            self.dropout)
              for _ in range(num_layers)]
         )
         outputs, state = tf.nn.dynamic_rnn(stacked_cells,
-                                           programs,
+                                           embed,
                                            dtype=tf.float32)
         return outputs, state
 

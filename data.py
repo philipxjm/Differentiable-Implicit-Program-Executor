@@ -55,15 +55,33 @@ def read_program_dir(dir_path):
     return np.array(programs)
 
 
+def build_vocab(program_names):
+    vocabs = []
+    for name in program_names:
+        program = read_program(name)
+        for token in program:
+            vocabs.append(token)
+    vocabs = set(vocabs)
+    idx2token = {i: w for i, w in enumerate(vocabs)}
+    token2idx = {w: i for i, w in enumerate(vocabs)}
+    return idx2token, token2idx
+
+
+def tokenize(program, token2idx):
+    return np.array([token2idx[w] for w in program])
+
+
 def generate_data(sdf_dir_path, prg_dir_path):
     sdf_names = sorted(glob.glob(sdf_dir_path + "*.sdf"))
     program_names = sorted(glob.glob(prg_dir_path + "*.txt"))
-    indices = np.random.permutation(program_names.shape[0])
+    idx2token, token2idx = build_vocab(program_names)
+    print(len(token2idx))
+    indices = np.random.permutation(len(program_names))
     for i in range(len(indices)):
         padded_sign_matrix = pad_sign_matrix(
             read_sdf(sdf_names[i])[0], hp.GRID_SIZE
         )
-        program = read_program(program_names[i])
+        program = tokenize(read_program(program_names[i]), token2idx)
         shape = padded_sign_matrix.shape
         programs = []
         positions = []
@@ -76,7 +94,7 @@ def generate_data(sdf_dir_path, prg_dir_path):
                     labels.append(
                         padded_sign_matrix[x][y][z]
                     )
-        yield np.array(programs), np.array(positions), np.array(labels)
+        yield np.array(programs), np.array(positions), np.array(labels)[..., np.newaxis]
 
 
 # print(read_sdf_dir("data/sdf_small/").shape)
