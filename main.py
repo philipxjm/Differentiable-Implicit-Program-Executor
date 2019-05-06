@@ -60,13 +60,13 @@ if __name__ == '__main__':
 
     padded_sign_matrices = read_sdf_dir("data/sdf_small/")
     programs = read_program_dir("data/programs/")
-    print("got a")
-    training_set, testing_set = generate_data(padded_sign_matrices, programs)
-    print("got here")
+    data_iter = generate_data(padded_sign_matrices, programs)
+    for i in data_iter:
+        print(i[0])
     m = model.Model(programs=programs,
                     positions=positions,
                     labels=labels,
                     dropout=dropout)
-    train(m, training_set, 10, "model/jsb8/model_")
+    # train(m, training_set, 10, "model/jsb8/model_")
     # test(m, pieces, "model/jsb8/model")
     # generate(m, pieces, "model/jsb8/model", token2idx, idx2token)

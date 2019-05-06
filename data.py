@@ -1,5 +1,4 @@
 import numpy as np
-import sys
 import glob
 import hyper_params as hp
 # np.set_printoptions(threshold=sys.maxsize)
@@ -22,6 +21,7 @@ def read_sdf(filepath):
 
 def read_sdf_dir(dir_path):
     sdf_names = sorted(glob.glob(dir_path + "*.sdf"))
+    return sdf_names
     sdfs = []
     for i in range(len(sdf_names)):
         sdfs.append(pad_sign_matrix(read_sdf(sdf_names[i])[0], hp.GRID_SIZE))
@@ -48,45 +48,35 @@ def read_program(filepath):
 
 def read_program_dir(dir_path):
     program_names = sorted(glob.glob(dir_path + "*.txt"))
+    return program_names
     programs = []
     for i in range(len(program_names)):
         programs.append(read_program(program_names[i]))
     return np.array(programs)
 
 
-def generate_data(padded_sign_matrices, programs):
-    training_set = {
-        "programs": [],
-        "positions": [],
-        "labels": []
-    }
-    testing_set = {
-        "programs": [],
-        "positions": [],
-        "labels": []
-    }
-    indices = np.random.permutation(programs.shape[0])
-    training_idx = indices[:int(programs.shape[0]*.8)]
-    test_idx = indices[int(programs.shape[0]*.8):]
-    shape = padded_sign_matrices.shape
-    for i in range(len(training_idx)):
+def generate_data(sdf_dir_path, prg_dir_path):
+    sdf_names = sorted(glob.glob(sdf_dir_path + "*.sdf"))
+    program_names = sorted(glob.glob(prg_dir_path + "*.txt"))
+    indices = np.random.permutation(program_names.shape[0])
+    for i in range(len(indices)):
+        padded_sign_matrix = pad_sign_matrix(
+            read_sdf(sdf_names[i])[0], hp.GRID_SIZE
+        )
+        program = read_program(program_names[i])
+        shape = padded_sign_matrix.shape
+        programs = []
+        positions = []
+        labels = []
         for x in range(shape[0]):
             for y in range(shape[1]):
                 for z in range(shape[2]):
-                    training_set["programs"].append(programs[training_idx[i]])
-                    training_set["positions"].append([x, y, z])
-                    training_set["labels"].append(
-                        padded_sign_matrices[x][y][z]
+                    programs.append(program)
+                    positions.append([x, y, z])
+                    labels.append(
+                        padded_sign_matrix[x][y][z]
                     )
-    print("done with train")
-    for i in range(len(test_idx)):
-        for x in range(shape[0]):
-            for y in range(shape[1]):
-                for z in range(shape[2]):
-                    testing_set["programs"].append(programs[test_idx[i]])
-                    testing_set["positions"].append([x, y, z])
-                    testing_set["labels"].append(padded_sign_matrices[x][y][z])
-    return training_set, testing_set
+        yield np.array(programs), np.array(positions), np.array(labels)
 
 
 # print(read_sdf_dir("data/sdf_small/").shape)
